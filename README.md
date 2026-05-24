@@ -7,6 +7,7 @@
 ```
 baby_agent/
 ├── agent.py          # 核心 Agent 循环与系统提示
+├── commands.py       # 斜杠命令注册与处理
 ├── memory.py         # 短期记忆 + 长期记忆
 ├── tools.py          # 工具定义（Schema）与执行实现
 ├── run.py            # CLI 入口
@@ -103,6 +104,23 @@ LLM 自身决定何时规划、何时直接行动，规划能力通过工具调�
 
 工具执行统一由 `execute_tool(name, args, agent)` 分发，每个工具内部捕获异常，错误信息作为结果返回给 LLM 让其自行调整。
 
+### 斜杠命令
+
+交互模式下输入 `/` 开头的命令可直接操作 Agent 状态，不经过 LLM：
+
+| 命令 | 说明 |
+|------|------|
+| `/help` | 显示所有可用命令 |
+| `/clear` | 清空对话历史 |
+| `/plan` | 查看当前计划及步骤状态 |
+| `/memory` | 列出所有长期记忆 |
+| `/prompt` | 切换 Prompt 显示（等价于 Ctrl+O） |
+| `/model` | 查看当前模型；`/model gpt-4` 切换模型 |
+| `/tools` | 列出可用工具及参数 |
+| `/quit` | 退出 Agent |
+
+命令系统基于 `CommandRegistry`，支持 `register()` 动态扩展。命令在 `run.py` 输入循环中优先拦截：以 `/` 开头的输入不会发送给 LLM。
+
 ### Thinking 模式
 
 接入 DeepSeek 的思考能力：
@@ -135,7 +153,7 @@ python3 run.py
 ## 示例交互
 
 ```
-Baby Agent (type 'quit' to exit)
+Baby Agent | model: deepseek-v4-pro | /help for commands (Ctrl+O: toggle prompt display)
 
 You> 列出当前目录的文件
   [tool] file_list({"path": "."})
@@ -144,6 +162,16 @@ Agent> Sir, current directory contains the following: agent.py, memory.py, tools
 You> 记住我的名字是 Alice
   [tool] memory_save({"key": "user_name", "value": "Alice"})
 Agent> Noted, Sir. I shall remember that your name is Alice.
+
+You> /memory
+Long-term memories:
+  user_name: Alice (personal)
+
+You> /tools
+Available tools:
+  file_read(path: Absolute or relative path to the file)
+    Read the contents of a file at the given path.
+  ...
 
 You> 我叫什么？
 Agent> Your name is Alice, Sir.

@@ -110,6 +110,19 @@ def main():
             if not user_input:
                 continue
 
+            # Slash command dispatch
+            if user_input.startswith("/"):
+                parts = user_input[1:].split(None, 1)
+                name = parts[0] if parts else ""
+                cmd_args = parts[1] if len(parts) > 1 else ""
+                try:
+                    result = registry.dispatch(agent, name, cmd_args)
+                    if result:
+                        print(result)
+                except SystemExit:
+                    break
+                continue
+
             response = agent.run(user_input)
             print(f"\nAgent> {response}")
 

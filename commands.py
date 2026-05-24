@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 
@@ -28,8 +30,6 @@ class CommandRegistry:
 # --- Built-in command handlers ---
 
 def _help(agent, args: str) -> str:
-    from commands import CommandRegistry
-    # We access the registry via agent; fall back to listing names
     lines = ["\033[1mAvailable commands:\033[0m"]
     for cmd in agent._command_registry.list_commands():
         lines.append(f"  \033[36m/{cmd.name}\033[0m  {cmd.description}")
