@@ -1,0 +1,20 @@
+[
+  {
+    "key": "project_structure",
+    "value": "Jarvis Python Agent 项目，包含 agent.py（核心代理逻辑+prompt）、memory.py（长期/短期记忆）、tools.py（工具集成）、run.py（入口）、requirements.txt。使用 DeepSeek 模型。",
+    "timestamp": "2026-05-25T00:08:32.830645",
+    "category": "project"
+  },
+  {
+    "key": "system_prompt",
+    "value": "角色：Jarvis（像钢铁侠中的管家），简洁自信，称用户 Sir/Ma'am。行为准则：\"先做再说\"——简单任务直接调工具，复杂任务先 create_plan。规则：修改前先读文件、改后验证、重要信息存入长期记忆、完成步骤标记。",
+    "timestamp": "2026-05-25T00:08:32.832458",
+    "category": "project"
+  },
+  {
+    "key": "conversation_summary",
+    "value": "首次对话：用户询问本地文件结构，查看了 agent.py 中的 BASE_SYSTEM_PROMPT，确认了 Jarvis 的角色定位和工具调用机制。Agent 类通过 LongTermMemory + ShortTermMemory + tool calls 循环与 LLM 交互。",
+    "timestamp": "2026-05-25T00:08:32.833763",
+    "category": "general"
+  }
+]
