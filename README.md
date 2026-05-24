@@ -110,13 +110,13 @@ LLM 自身决定何时规划、何时直接行动，规划能力通过工具调�
 
 | 命令 | 说明 |
 |------|------|
-| `/help` | 显示所有可用命令 |
+| `/help` | 显示可用命令 |
 | `/clear` | 清空对话历史 |
-| `/plan` | 查看当前计划及步骤状态 |
-| `/memory` | 列出所有长期记忆 |
+| `/plan` | 查看当前计划 |
+| `/memory` | 查看长期记忆 |
 | `/prompt` | 切换 Prompt 显示（等价于 Ctrl+O） |
-| `/model` | 查看当前模型；`/model gpt-4` 切换模型 |
-| `/tools` | 列出可用工具及参数 |
+| `/model` | 查看或切换模型（如 `/model gpt-4`） |
+| `/tools` | 查看可用工具 |
 | `/quit` | 退出 Agent |
 
 命令系统基于 `CommandRegistry`，支持 `register()` 动态扩展。命令在 `run.py` 输入循环中优先拦截：以 `/` 开头的输入不会发送给 LLM。
@@ -164,11 +164,11 @@ You> 记住我的名字是 Alice
 Agent> Noted, Sir. I shall remember that your name is Alice.
 
 You> /memory
-Long-term memories:
+长期记忆:
   user_name: Alice (personal)
 
 You> /tools
-Available tools:
+可用工具:
   file_read(path: Absolute or relative path to the file)
     Read the contents of a file at the given path.
   ...

@@ -1,59 +1,8 @@
-import json
 import os
 import subprocess
 
 
 TOOL_DEFINITIONS = [
-    {
-        "type": "function",
-        "function": {
-            "name": "file_read",
-            "description": "Read the contents of a file at the given path.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "path": {
-                        "type": "string",
-                        "description": "Absolute or relative path to the file",
-                    }
-                },
-                "required": ["path"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "file_write",
-            "description": "Write content to a file. Creates the file if it doesn't exist, overwrites if it does.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "path": {"type": "string", "description": "Path to the file"},
-                    "content": {"type": "string", "description": "Content to write"},
-                },
-                "required": ["path", "content"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "file_list",
-            "description": "List files and directories at the given path.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "path": {
-                        "type": "string",
-                        "description": "Directory path. Defaults to current directory.",
-                        "default": ".",
-                    }
-                },
-                "required": [],
-            },
-        },
-    },
     {
         "type": "function",
         "function": {
@@ -170,9 +119,6 @@ def get_tool_definitions() -> list[dict]:
 def execute_tool(name: str, args: dict, agent) -> str:
     """Dispatch tool call by name. Returns string result."""
     dispatch = {
-        "file_read": _file_read,
-        "file_write": _file_write,
-        "file_list": _file_list,
         "code_execute": _code_execute,
         "memory_save": _memory_save,
         "memory_recall": _memory_recall,
@@ -186,29 +132,6 @@ def execute_tool(name: str, args: dict, agent) -> str:
         return handler(args, agent)
     except Exception as e:
         return f"Error in {name}: {e}"
-
-
-def _file_read(args: dict, _agent) -> str:
-    path = args["path"]
-    with open(path, "r", encoding="utf-8") as f:
-        return f.read()
-
-
-def _file_write(args: dict, _agent) -> str:
-    path = args["path"]
-    content = args["content"]
-    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(content)
-    return f"Successfully wrote to {path}"
-
-
-def _file_list(args: dict, _agent) -> str:
-    path = args.get("path", ".")
-    entries = os.listdir(path)
-    if not entries:
-        return f"(empty directory: {path})"
-    return "\n".join(sorted(entries))
 
 
 def _code_execute(args: dict, _agent) -> str:

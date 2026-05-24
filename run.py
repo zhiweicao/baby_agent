@@ -2,6 +2,7 @@ import argparse
 import os
 import select
 import sys
+import unicodedata
 
 from openai import OpenAI
 
@@ -10,6 +11,39 @@ from commands import build_registry
 from memory import LongTermMemory
 
 CTRL_O = "\x0f"
+
+
+def _char_width(ch: str) -> int:
+    """Return the display column width of a character (CJK = 2, else 1)."""
+    eaw = unicodedata.east_asian_width(ch)
+    return 2 if eaw in ("F", "W") else 1
+
+
+def _str_width(s: str) -> int:
+    """Return the total display column width of a string."""
+    return sum(_char_width(ch) for ch in s)
+
+
+def _read_char(fd) -> str:
+    """Read a complete UTF-8 character from fd in raw mode."""
+    first = os.read(fd, 1)
+    if not first:
+        return ""
+    b = first[0]
+    if b < 0x80:
+        num_bytes = 1
+    elif b < 0xE0:
+        num_bytes = 2
+    elif b < 0xF0:
+        num_bytes = 3
+    else:
+        num_bytes = 4
+    data = first
+    while len(data) < num_bytes:
+        if not select.select([fd], [], [], 0.05)[0]:
+            break
+        data += os.read(fd, 1)
+    return data.decode("utf-8", errors="replace")
 
 
 def _get_suggestions(buffer: str, registry) -> list:
@@ -67,10 +101,9 @@ def _clear_dropdown(count: int):
 
 
 def _redraw_input(prompt_str: str, buffer: str):
-    """Redraw the input line (prompt + buffer). Strips leading \\n from prompt
-    since the newline was already emitted when the prompt was first shown."""
+    """Redraw the input line (prompt + buffer) and clear any stale trailing content."""
     display = prompt_str.lstrip("\n")
-    sys.stdout.write("\r" + display + buffer)
+    sys.stdout.write("\r" + display + buffer + "\033[K")
     sys.stdout.flush()
 
 
@@ -108,7 +141,7 @@ def read_line(prompt_str: str, agent: Agent, registry) -> str:
     try:
         tty.setraw(fd)
         while True:
-            ch = sys.stdin.read(1)
+            ch = _read_char(fd)
 
             # --- Escape sequences (arrow keys, etc.) ---
             if ch == "\x1b":
@@ -171,7 +204,7 @@ def read_line(prompt_str: str, agent: Agent, registry) -> str:
 
             # --- Enter ---
             if ch in ("\r", "\n"):
-                # If dropdown visible and selection highlighted, accept it
+                # If dropdown visible, accept selection and submit immediately
                 if dropdown_count > 0 and buffer.startswith("/"):
                     suggestions = _get_suggestions(buffer, registry)
                     if suggestions and selected_idx < len(suggestions):
@@ -179,7 +212,9 @@ def read_line(prompt_str: str, agent: Agent, registry) -> str:
                         buffer = f"/{cmd.name}"
                 _clear_dropdown(dropdown_count)
                 dropdown_count = 0
-                sys.stdout.write("\r\n")
+                # Clear the input line and reprint it cleanly, then newline
+                display = prompt_str.lstrip("\n")
+                sys.stdout.write("\r" + display + buffer + "\r\n")
                 sys.stdout.flush()
                 break
 
@@ -200,6 +235,8 @@ def read_line(prompt_str: str, agent: Agent, registry) -> str:
             # --- Backspace ---
             if ch in ("\x7f", "\x08"):
                 if buffer:
+                    erased = buffer[-1]
+                    erased_cols = _char_width(erased)
                     buffer = buffer[:-1]
                     if buffer.startswith("/"):
                         suggestions = _get_suggestions(buffer, registry)
@@ -215,7 +252,7 @@ def read_line(prompt_str: str, agent: Agent, registry) -> str:
                                 dropdown_count = 0
                                 _redraw_input(prompt_str, buffer)
                             else:
-                                sys.stdout.write("\b \b")
+                                sys.stdout.write("\b" * erased_cols + " " * erased_cols + "\b" * erased_cols)
                                 sys.stdout.flush()
                     else:
                         if dropdown_count > 0:
@@ -223,7 +260,7 @@ def read_line(prompt_str: str, agent: Agent, registry) -> str:
                             dropdown_count = 0
                             _redraw_input(prompt_str, buffer)
                         else:
-                            sys.stdout.write("\b \b")
+                            sys.stdout.write("\b" * erased_cols + " " * erased_cols + "\b" * erased_cols)
                             sys.stdout.flush()
                 continue
 
